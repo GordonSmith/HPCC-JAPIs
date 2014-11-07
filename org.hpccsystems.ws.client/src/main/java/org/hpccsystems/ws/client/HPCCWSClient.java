@@ -32,14 +32,14 @@ public class HPCCWSClient extends DataSingleton
 {
     public static DataSingletonCollection All = new DataSingletonCollection();
 
-    public static HPCCWSClient get(String protocol, String targetWsECLWatchAddress, int targetWsECLWatchPort, String user, String password)
+    public static HPCCWSClient get(boolean isSSL, String targetWsECLWatchAddress, int targetWsECLWatchPort, String user, String password)
     {
-        return (HPCCWSClient) All.get(new HPCCWSClient( protocol, targetWsECLWatchAddress, Integer.toString(targetWsECLWatchPort), user, password));
+        return (HPCCWSClient) All.get(new HPCCWSClient( Connection.getProtocol(isSSL), targetWsECLWatchAddress, Integer.toString(targetWsECLWatchPort), user, password));
     }
 
-    public static HPCCWSClient getNoCreate(String protocol, String targetWsECLWatchAddress, int targetWsECLWatchPort,String user, String password)
+    public static HPCCWSClient getNoCreate(boolean isSSL, String targetWsECLWatchAddress, int targetWsECLWatchPort,String user, String password)
     {
-        return (HPCCWSClient) All.getNoCreate(new HPCCWSClient(protocol, targetWsECLWatchAddress, Integer.toString(targetWsECLWatchPort), user, password));
+        return (HPCCWSClient) All.getNoCreate(new HPCCWSClient( Connection.getProtocol(isSSL), targetWsECLWatchAddress, Integer.toString(targetWsECLWatchPort), user, password));
     }
 
     public static void remove(HPCCWSClient p)
@@ -159,9 +159,33 @@ public class HPCCWSClient extends DataSingleton
      */
     private HPCCWSClient(Connection conn)
     {
+        //setConnection(conn);
         connection = conn;
     }
 
+    /*public synchronized void setCredentials(String username, String password)
+    {
+        clearAllClients();
+        connection.setCredentials(username, password);
+    }*/
+
+    /*
+    private void clearAllClients()
+    {
+        fileSprayClient             = null;
+        wsFileIOClient              = null;
+        wsTopologyClient            = null;
+        eclDirectClient             = null;
+        wsWorkunitsClient           = null;
+        wsSMCClient                 = null;
+    }
+
+    protected synchronized void setConnection(Connection conn)
+    {
+        clearAllClients();
+        connection = conn;
+    }
+*/
     protected Connection getConnection()
     {
         return connection;

@@ -7,185 +7,163 @@
  ******************************************************************************/
 package org.hpccsystems.ws.client.platform;
 
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.hpccsystems.ws.client.HPCCWsDFUClient;
+import org.hpccsystems.ws.client.gen.filespray.v1_06.ArrayOfEspException;
 import org.hpccsystems.ws.client.gen.filespray.v1_06.PhysicalFileStruct;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUFileDetail;
+import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUInfoRequest;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUInfoResponse;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFULogicalFile;
+import org.hpccsystems.ws.client.gen.wsdfu.v1_24.WsDfuServiceSoap;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.ECLSourceFile;
 import org.hpccsystems.ws.client.utils.EqualsUtil;
 import org.hpccsystems.ws.client.utils.HashCodeUtil;
 
-public class LogicalFile extends DataSingleton
-{
-    private static Map<Integer, LogicalFile> LogicalFiles = new HashMap<Integer, LogicalFile>();
+public class LogicalFile extends DataSingleton {
+	private static Map<Integer, LogicalFile> LogicalFiles = new HashMap<Integer, LogicalFile>();
+	public static synchronized LogicalFile get(Platform platform, String name) {
+		LogicalFile logicalFile = new LogicalFile(platform, name);
+		if (LogicalFiles.containsKey(logicalFile.hashCode())) {
+			return LogicalFiles.get(logicalFile.hashCode());
+		}
+		else {
+			LogicalFiles.put(logicalFile.hashCode(), logicalFile);
+		}
+		return logicalFile;
+	}
 
-    public static synchronized LogicalFile get(Platform platform, String name)
-    {
-        LogicalFile logicalFile = new LogicalFile(platform, name);
-        if (LogicalFiles.containsKey(logicalFile.hashCode()))
-        {
-            return LogicalFiles.get(logicalFile.hashCode());
-        }
-        else
-        {
-            LogicalFiles.put(logicalFile.hashCode(), logicalFile);
-        }
-        return logicalFile;
-    }
+	private Platform platform;
+	private DFULogicalFile info;
+	private DFUFileDetail info2;
+	private ECLSourceFile info3;
+	private PhysicalFileStruct info4;
+	public enum Notification {
+		LOGICALFILE
+	}
 
-    private Platform           platform;
-    private DFULogicalFile     info;
-    private DFUFileDetail      info2;
-    private ECLSourceFile      info3;
-    private PhysicalFileStruct info4;
+	private LogicalFile(Platform platform, String name) {
+		this.platform = platform;
+		info = new DFULogicalFile();
+		info.setName(name);
+		info2 = new DFUFileDetail();
+		info2.setName(name);
+		info3 = new ECLSourceFile();
+		info3.setName(name);
+		info4 = new PhysicalFileStruct();
+		info4.setName(name);
+	}
 
-    public enum Notification
-    {
-        LOGICALFILE
-    }
+	public String getName() {
+		return info.getName();
+	}
 
-    private LogicalFile(Platform platform, String name)
-    {
-        this.platform = platform;
-        info = new DFULogicalFile();
-        info.setName(name);
-        info2 = new DFUFileDetail();
-        info2.setName(name);
-        info3 = new ECLSourceFile();
-        info3.setName(name);
-        info4 = new PhysicalFileStruct();
-        info4.setName(name);
-    }
+	public Workunit getWorkunit() {
+		if (info2.getWuid() == null) {
+			fullRefresh();
+		}
+		if (info2.getWuid() == null || !info2.getWuid().startsWith("W")) {
+			return null;
+		}
+		return platform.getWorkunit(info2.getWuid());
+	}
 
-    public String getName()
-    {
-        return info.getName();
-    }
+	public FileSprayWorkunit getFileSprayWorkunit() {
+		if (info2.getWuid() == null) {
+			fullRefresh();
+		}
+		if (info2.getWuid() == null || !info2.getWuid().startsWith("D")) {
+			return null;
+		}
+		return platform.getFileSprayWorkunit(info2.getWuid());
+	}
 
-    public Workunit getWorkunit()
-    {
-        if (info2.getWuid() == null)
-        {
-            fullRefresh();
-        }
-        if (info2.getWuid() == null || !info2.getWuid().startsWith("W"))
-        {
-            return null;
-        }
-        return platform.getWorkunit(info2.getWuid());
-    }
+	public String getDir() {
+		if (info2.getDir() == null) {
+			fullRefresh();
+		}
+		return info2.getDir();
+	}
 
-    public FileSprayWorkunit getFileSprayWorkunit()
-    {
-        if (info2.getWuid() == null)
-        {
-            fullRefresh();
-        }
-        if (info2.getWuid() == null || !info2.getWuid().startsWith("D"))
-        {
-            return null;
-        }
-        return platform.getFileSprayWorkunit(info2.getWuid());
-    }
+	@Override
+	protected boolean isComplete() {
+		return true;
+	}
 
-    public String getDir()
-    {
-        if (info2.getDir() == null)
-        {
-            fullRefresh();
-        }
-        return info2.getDir();
-    }
+	@Override
+	protected void fastRefresh() {
+		fullRefresh();
+	}
 
-    @Override
-    protected boolean isComplete()
-    {
-        return true;
-    }
+	@Override
+	protected void fullRefresh() {
+		WsDfuServiceSoap service = platform.getWsDfuService();
+		if (service != null) {
+			DFUInfoRequest request = new DFUInfoRequest();
+			request.setName(info.getName());
+			try {
+				DFUInfoResponse respsone = service.DFUInfo(request);
+				Update(respsone.getFileDetail());		
+			} catch (ArrayOfEspException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		notifyObservers(Notification.LOGICALFILE);
+	}
 
-    @Override
-    protected void fastRefresh()
-    {
-        fullRefresh();
-    }
+	//  Updates  ---
+	public void Update(DFULogicalFile lf) {
+		if (info.getName().equals(lf.getName())) {
+			info = lf;
+		}
+	}
 
-    @Override
-    protected void fullRefresh()
-    {
-        try
-        {
-            HPCCWsDFUClient wsDfuClient = platform.getWsDfuClient();
-            DFUInfoResponse fileInfo = wsDfuClient.getFileInfo(info.getName(), null);
-            update(fileInfo.getFileDetail());
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-        notifyObservers(Notification.LOGICALFILE);
-    }
+	void Update(DFUFileDetail fd) {
+		if (fd != null && info2.getName().equals(fd.getName())) {
+			info2 = fd;
+		}
+	}
 
-    // Updates ---
-    public void update(DFULogicalFile lf)
-    {
-        if (info.getName().equals(lf.getName()))
-        {
-            info = lf;
-        }
-    }
+	public void Update(ECLSourceFile sf) {
+		if (info3.getName().equals(sf.getName())) {
+			info3 = sf;
+		}
+	}
 
-    void update(DFUFileDetail fd)
-    {
-        if (fd != null && info2.getName().equals(fd.getName()))
-        {
-            info2 = fd;
-        }
-    }
+	public void Update(PhysicalFileStruct fileStruct) {
+		if (info4.getName().equals(fileStruct.getName())) {
+			info4 = fileStruct;
+		}
+	}
 
-    public void Update(ECLSourceFile sf)
-    {
-        if (info3.getName().equals(sf.getName()))
-        {
-            info3 = sf;
-        }
-    }
+	@Override 
+	public boolean equals(Object aThat) {
+		if ( this == aThat ) {
+			return true;
+		}
 
-    public void Update(PhysicalFileStruct fileStruct)
-    {
-        if (info4.getName().equals(fileStruct.getName()))
-        {
-            info4 = fileStruct;
-        }
-    }
+		if ( !(aThat instanceof LogicalFile) ) {
+			return false;
+		}
+		LogicalFile that = (LogicalFile)aThat;
 
-    @Override
-    public boolean equals(Object aThat)
-    {
-        if (this == aThat)
-        {
-            return true;
-        }
+		//now a proper field-by-field evaluation can be made
+		return EqualsUtil.areEqual(platform, that.platform) &&
+				EqualsUtil.areEqual(info.getName(), that.info.getName());
+	}
 
-        if (!(aThat instanceof LogicalFile))
-        {
-            return false;
-        }
-        LogicalFile that = (LogicalFile) aThat;
-
-        // now a proper field-by-field evaluation can be made
-        return EqualsUtil.areEqual(platform, that.platform) && EqualsUtil.areEqual(info.getName(), that.info.getName());
-    }
-
-    @Override
-    public int hashCode()
-    {
-        int result = HashCodeUtil.SEED;
-        result = HashCodeUtil.hash(result, platform);
-        result = HashCodeUtil.hash(result, info.getName());
-        return result;
-    }
+	@Override
+	public int hashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, platform);
+		result = HashCodeUtil.hash(result, info.getName());
+		return result;
+	}
 }

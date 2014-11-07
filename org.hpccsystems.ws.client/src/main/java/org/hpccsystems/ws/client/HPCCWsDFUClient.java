@@ -23,8 +23,6 @@ import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUInfoResponse;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFULogicalFile;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUQueryRequest;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUQueryResponse;
-import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUSearchDataRequest;
-import org.hpccsystems.ws.client.gen.wsdfu.v1_24.DFUSearchDataResponse;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.EspException;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.WsDfuServiceSoap;
 import org.hpccsystems.ws.client.gen.wsdfu.v1_24.WsDfuServiceSoapProxy;
@@ -593,14 +591,12 @@ public class HPCCWsDFUClient extends DataSingleton
         }
     }
 
-    public DFULogicalFile[] getLogicalFiles(String filename, String cluster, int firstN, int pageStartFrom, int pageSize) throws Exception
+    public DFULogicalFile[] getLogicalFiles(String cluster, int firstN, int pageStartFrom, int pageSize) throws Exception
     {
         WsDfuServiceSoapProxy proxy = getSoapProxy();
 
         DFULogicalFile[] logicalfiles = null;
         DFUQueryRequest request = new DFUQueryRequest();
-        if (filename != null)
-            request.setLogicalName(filename);
         request.setClusterName(cluster);
         request.setFirstN(firstN);
         request.setPageStartFrom(pageStartFrom);
@@ -611,22 +607,6 @@ public class HPCCWsDFUClient extends DataSingleton
             logicalfiles = response.getDFULogicalFiles();
 
         return logicalfiles;
-    }
-
-    public DFUSearchDataResponse getDFUData(String openLogicalName, String cluster, boolean roxieSelections, int chooseFile, int count, boolean schemaOnly, long startIndex) throws Exception
-    {
-        WsDfuServiceSoapProxy proxy = getSoapProxy();
-
-        DFUSearchDataRequest dfuSearchDataRequest = new DFUSearchDataRequest();
-        dfuSearchDataRequest.setOpenLogicalName(openLogicalName);
-        dfuSearchDataRequest.setCluster(cluster);
-        dfuSearchDataRequest.setRoxieSelections(roxieSelections);
-        dfuSearchDataRequest.setChooseFile(chooseFile);
-        dfuSearchDataRequest.setCount(count);
-        dfuSearchDataRequest.setSchemaOnly(schemaOnly);
-        dfuSearchDataRequest.setStartIndex(startIndex);
-
-        return proxy.DFUSearchData(dfuSearchDataRequest);
     }
 
     @Override

@@ -15,140 +15,113 @@ import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.ECLGraph;
 import org.hpccsystems.ws.client.utils.EqualsUtil;
 import org.hpccsystems.ws.client.utils.HashCodeUtil;
 
-public class Graph extends DataSingleton
-{
-    private static Map<Integer, Graph> Graphs = new HashMap<Integer, Graph>();
+public class Graph extends DataSingleton {
+	private static Map<Integer, Graph> Graphs = new HashMap<Integer, Graph>();
+	public static synchronized Graph get(Workunit workunit, String name) {
+		Graph graph = new Graph(workunit, name);
+		if (Graphs.containsKey(graph.hashCode())) {
+			return Graphs.get(graph.hashCode());
+		}
+		else {
+			Graphs.put(graph.hashCode(), graph);
+		}
+		return graph;
+	}
 
-    public static synchronized Graph get(Workunit workunit, String name)
-    {
-        Graph graph = new Graph(workunit, name);
-        if (Graphs.containsKey(graph.hashCode()))
-        {
-            return Graphs.get(graph.hashCode());
-        }
-        else
-        {
-            Graphs.put(graph.hashCode(), graph);
-        }
-        return graph;
-    }
+	private Workunit workunit;
+	private ECLGraph info;
+	public enum Notification {
+		GRAPH
+	}
 
-    private Workunit workunit;
-    private ECLGraph info;
+	private Graph(Workunit workunit, String name) {
+		this.workunit = workunit;
+		info = new ECLGraph();
+		info.setName(name);
+	}
 
-    public enum Notification
-    {
-        GRAPH
-    }
+	public Workunit getWorkunit() {
+		return workunit;
+	}
 
-    private Graph(Workunit workunit, String name)
-    {
-        this.workunit = workunit;
-        info = new ECLGraph();
-        info.setName(name);
-    }
+	public String getWuid() {
+		return workunit.getWuid();
+	}
 
-    public Workunit getWorkunit()
-    {
-        return workunit;
-    }
+	public String getName() {
+		return info.getName();
+	}
 
-    public String getWuid()
-    {
-        return workunit.getWuid();
-    }
+	public State getStateID() {
+		if (info.getRunning() != null && info.getRunning()) {
+			return State.RUNNING;
+		} else if (info.getComplete() != null && info.getComplete()) {
+			return State.COMPLETED;
+		} else if (info.getFailed() != null && info.getFailed()) {
+			return State.FAILED;
+		}
+		return State.UNKNOWN;
+	}
 
-    public String getName()
-    {
-        return info.getName();
-    }
+	@Override
+	public boolean isComplete() {
+		return StateHelper.isCompleted(getStateID()) || workunit.isComplete();
+	}
 
-    public WUState getStateID()
-    {
-        if (info.getRunning() != null && info.getRunning())
-        {
-            return WUState.RUNNING;
-        }
-        else if (info.getComplete() != null && info.getComplete())
-        {
-            return WUState.COMPLETED;
-        }
-        else if (info.getFailed() != null && info.getFailed())
-        {
-            return WUState.FAILED;
-        }
-        return WUState.UNKNOWN;
-    }
+	@Override
+	protected void fastRefresh() {
+		fullRefresh();
+	}
 
-    @Override
-    public boolean isComplete()
-    {
-        return HPCCWsWorkUnitsClient.isWorkunitComplete(getStateID()) || workunit.isComplete();
-    }
+	@Override
+	protected void fullRefresh() {
+		workunit.getGraphs();
+	}
 
-    @Override
-    protected void fastRefresh()
-    {
-        fullRefresh();
-    }
+	//  Updates  ---
+	boolean Update(ECLGraph graph) {		
+		boolean retVal = false;
+		if (graph != null && info.getName().equals(graph.getName()) && !info.equals(graph)) {
+			if (UpdateState(graph)) {
+				retVal = true;
+				notifyObservers(Notification.GRAPH);
+			}
+		}
+		monitor();
+		return retVal;
+	}
 
-    @Override
-    protected void fullRefresh()
-    {
-        workunit.getGraphs();
-    }
+	boolean UpdateState(ECLGraph graph) {
+		if (info.getName().equals(graph.getName()) && 
+				EqualsUtil.hasChanged(info, graph)) {
+			info = graph;
+			setChanged();
+			return true;
+		}
+		return false;
+	}
 
-    // Updates ---
-    boolean update(ECLGraph graph)
-    {
-        boolean retVal = false;
-        if (graph != null && info.getName().equals(graph.getName()) && !info.equals(graph))
-        {
-            if (UpdateState(graph))
-            {
-                retVal = true;
-                notifyObservers(Notification.GRAPH);
-            }
-        }
-        monitor();
-        return retVal;
-    }
+	@Override 
+	public boolean equals(Object aThat) {
+		if ( this == aThat ) {
+			return true;
+		}
 
-    boolean UpdateState(ECLGraph graph)
-    {
-        if (info.getName().equals(graph.getName()) && EqualsUtil.hasChanged(info, graph))
-        {
-            info = graph;
-            setChanged();
-            return true;
-        }
-        return false;
-    }
+		if ( !(aThat instanceof Graph) ) {
+			return false;
+		}
+		Graph that = (Graph)aThat;
 
-    @Override
-    public boolean equals(Object aThat)
-    {
-        if (this == aThat)
-        {
-            return true;
-        }
+		//now a proper field-by-field evaluation can be made
+		return 	EqualsUtil.areEqual(workunit, that.workunit) &&
+				EqualsUtil.areEqual(info.getName(), that.info.getName());
+	}
 
-        if (!(aThat instanceof Graph))
-        {
-            return false;
-        }
-        Graph that = (Graph) aThat;
-
-        // now a proper field-by-field evaluation can be made
-        return EqualsUtil.areEqual(workunit, that.workunit) && EqualsUtil.areEqual(info.getName(), that.info.getName());
-    }
-
-    @Override
-    public int hashCode()
-    {
-        int result = HashCodeUtil.SEED;
-        result = HashCodeUtil.hash(result, workunit);
-        result = HashCodeUtil.hash(result, info.getName());
-        return result;
-    }
+	@Override
+	public int hashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, workunit);
+		result = HashCodeUtil.hash(result, info.getName());
+		return result;
+	}
 }

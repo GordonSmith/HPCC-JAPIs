@@ -130,11 +130,6 @@ public class Connection
         return ssl ? protHttps : protHttp;
     }
 
-    public static boolean isSslProtocol(String protocol)
-    {
-        return protHttps.equalsIgnoreCase(protocol);
-    }
-
     public Connection(boolean ssl, String host, int port)
     {
         this(getProtocol(ssl), host, String.valueOf(port), null, null);

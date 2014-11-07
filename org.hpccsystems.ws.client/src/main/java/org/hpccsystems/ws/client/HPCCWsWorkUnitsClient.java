@@ -19,10 +19,7 @@ import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUInfoResponse;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUPublishWorkunit;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUPublishWorkunitResponse;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQuery;
-import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQueryDetails;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQueryResponse;
-import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQuerySetDetailsResponse;
-import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQuerysetDetails;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQuerysets;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUQuerysetsResponse;
 import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.WUResubmit;
@@ -74,7 +71,6 @@ public class HPCCWsWorkUnitsClient extends DataSingleton
     public static final int             defaultWaitTime             = 10000;
     public static final int             defaultResultLimit          = 100;
     public static final int             defaultMaxWaitTime          = 1000 * 60 * 5;
-
     private boolean                     verbose                     = false;
 
     protected void fastWURefresh(WorkunitInfo wu) throws Exception
@@ -530,7 +526,7 @@ public class HPCCWsWorkUnitsClient extends DataSingleton
         return workunit;
     }
 
-    public WUInfoResponse getWUInfo(String wuid, boolean includeResults, boolean includeGraphs, boolean includeSourceFiles, boolean includeApplicationValues, Boolean includeDebugValues, Boolean includeExceptions, Boolean includeVariables, Boolean includeXmlSchemas, Boolean includeTimers) throws Exception
+    public WUInfoResponse getWUInfo(String wuid, boolean includeGraphs, boolean includeResults, boolean includeSourceFiles, boolean includeApplicationValues) throws Exception
     {
         if (wsWorkunitsServiceSoapProxy == null)
             throw new Exception("wsWorkunitsServiceSoapProxy not available");
@@ -544,13 +540,9 @@ public class HPCCWsWorkUnitsClient extends DataSingleton
             request.setSuppressResultSchemas(!includeResults);
             request.setIncludeSourceFiles(includeSourceFiles);
             request.setIncludeApplicationValues(includeApplicationValues);
-            request.setIncludeDebugValues(includeDebugValues);
-            request.setIncludeExceptions(includeExceptions);
-            request.setIncludeTimers(includeTimers);
-            request.setIncludeVariables(includeVariables);
-            request.setIncludeXmlSchemas(includeXmlSchemas);
 
             return wsWorkunitsServiceSoapProxy.WUInfo(request);
+
         }
     }
 
@@ -1088,19 +1080,6 @@ public class HPCCWsWorkUnitsClient extends DataSingleton
 
     }
 
-    public WUQuerySetDetailsResponse getQueriesDetail(String querySetName, String clusterName, String filter) throws Exception
-    {
-        if (wsWorkunitsServiceSoapProxy == null)
-            throw new Exception("wsWorkunitsServiceSoapProxy not available");
-
-        WUQuerysetDetails wuQuerysetDetails = new WUQuerysetDetails();
-        wuQuerysetDetails.setQuerySetName(querySetName);
-        wuQuerysetDetails.setClusterName(clusterName);
-        wuQuerysetDetails.setFilter(filter);
-
-        return wsWorkunitsServiceSoapProxy.WUQuerysetDetails(wuQuerysetDetails);
-    }
-
     public void abortWU(String wuid) throws Exception
     {
         if (wsWorkunitsServiceSoapProxy == null)
@@ -1215,6 +1194,4 @@ public class HPCCWsWorkUnitsClient extends DataSingleton
         result = HashCodeUtil.hash(result, ((Stub)  wsWorkunitsServiceSoapProxy.getWsWorkunitsServiceSoap()).getPassword());
         return result;
     }
-
-
 }

@@ -14,95 +14,77 @@ import org.hpccsystems.ws.client.gen.wsworkunits.v1_46.QuerySet;
 import org.hpccsystems.ws.client.utils.EqualsUtil;
 import org.hpccsystems.ws.client.utils.HashCodeUtil;
 
-public class DataQuerySet extends DataSingleton
-{
-    private static Map<Integer, DataQuerySet> QuerySets = new HashMap<Integer, DataQuerySet>();
+public class DataQuerySet extends DataSingleton {
+	private static Map<Integer, DataQuerySet> QuerySets = new HashMap<Integer, DataQuerySet>();
+	public static synchronized DataQuerySet get(Platform platform, String name) {
+		DataQuerySet dataQuerySet = new DataQuerySet(platform, name);
+		if (QuerySets.containsKey(dataQuerySet.hashCode())) {
+			return QuerySets.get(dataQuerySet.hashCode());
+		}
+		else {
+			QuerySets.put(dataQuerySet.hashCode(), dataQuerySet);
+		}
+		return dataQuerySet;
+	}
 
-    public static synchronized DataQuerySet get(Platform platform, String name)
-    {
-        DataQuerySet dataQuerySet = new DataQuerySet(platform, name);
-        if (QuerySets.containsKey(dataQuerySet.hashCode()))
-        {
-            return QuerySets.get(dataQuerySet.hashCode());
-        }
-        else
-        {
-            QuerySets.put(dataQuerySet.hashCode(), dataQuerySet);
-        }
-        return dataQuerySet;
-    }
+	private Platform platform;
+	private QuerySet info;
+	public enum Notification {
+		QUERYSET
+	}
 
-    private Platform platform;
-    private QuerySet info;
+	private DataQuerySet(Platform platform, String name) {
+		this.platform = platform;
+		info = new QuerySet();
+		info.setQuerySetName(name);
+	}
 
-    public enum Notification
-    {
-        QUERYSET
-    }
+	public String getName() {
+		return info.getQuerySetName();
+	}
 
-    private DataQuerySet(Platform platform, String name)
-    {
-        this.platform = platform;
-        info = new QuerySet();
-        info.setQuerySetName(name);
-    }
+	@Override
+	protected boolean isComplete() {
+		return true;
+	}
 
-    public String getName()
-    {
-        return info.getQuerySetName();
-    }
+	@Override
+	protected void fastRefresh() {
+		fullRefresh();
+	}
 
-    @Override
-    protected boolean isComplete()
-    {
-        return true;
-    }
+	@Override
+	protected void fullRefresh() {
+	}
 
-    @Override
-    protected void fastRefresh()
-    {
-        fullRefresh();
-    }
+	//  Updates  ---
+	public void Update(QuerySet qs) {
+		if (info.getQuerySetName().equals(qs.getQuerySetName())) {
+			info = qs;
+		}
+	}
 
-    @Override
-    protected void fullRefresh()
-    {
-    }
+	@Override 
+	public boolean equals(Object aThat) {
+		if ( this == aThat ) {
+			return true;
+		}
 
-    // Updates ---
-    public void Update(QuerySet qs)
-    {
-        if (info.getQuerySetName().equals(qs.getQuerySetName()))
-        {
-            info = qs;
-        }
-    }
+		if ( !(aThat instanceof DataQuerySet) ) {
+			return false;
+		}
+		DataQuerySet that = (DataQuerySet)aThat;
 
-    @Override
-    public boolean equals(Object aThat)
-    {
-        if (this == aThat)
-        {
-            return true;
-        }
+		//now a proper field-by-field evaluation can be made
+		return EqualsUtil.areEqual(platform, that.platform) &&
+				EqualsUtil.areEqual(info.getQuerySetName(), that.info.getQuerySetName());
+	}
 
-        if (!(aThat instanceof DataQuerySet))
-        {
-            return false;
-        }
-        DataQuerySet that = (DataQuerySet) aThat;
-
-        // now a proper field-by-field evaluation can be made
-        return EqualsUtil.areEqual(platform, that.platform)
-                && EqualsUtil.areEqual(info.getQuerySetName(), that.info.getQuerySetName());
-    }
-
-    @Override
-    public int hashCode()
-    {
-        int result = HashCodeUtil.SEED;
-        result = HashCodeUtil.hash(result, platform);
-        result = HashCodeUtil.hash(result, info.getQuerySetName());
-        return result;
-    }
+	@Override
+	public int hashCode() {
+		int result = HashCodeUtil.SEED;
+		result = HashCodeUtil.hash(result, platform);
+		result = HashCodeUtil.hash(result, info.getQuerySetName());
+		return result;
+	}
 }
